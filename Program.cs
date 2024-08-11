@@ -1,6 +1,7 @@
 using BT_INTEGRATIONS.SQUARE;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using RabbitMQ.Client;
 using Square;
 using Square.Apis;
 using Square.Exceptions;
@@ -15,6 +16,8 @@ public class Program
     public static string API = "";
     public static string SignatureKey = "";
     public static string EventURL = "";
+
+    public static IModel RabbitCheckoutChannel;
 
     public async static Task Main(string[] args)
     {
@@ -48,6 +51,7 @@ public class Program
 
         app.MapControllers();
 
+        // Load device codes
         string? deviceCode = await SquareHandlers.GetDeviceCode();
         if (deviceCode == null)
         {
@@ -60,6 +64,12 @@ public class Program
             deviceCode = await SquareHandlers.GenerateNewDeviceCode();
         }
 
+        // Setup communications
+        var factory = new ConnectionFactory { HostName = "localhost" };
+        var connection = factory.CreateConnection();
+        RabbitCheckoutChannel = connection.CreateModel();
+
+        RabbitCheckoutChannel.ExchangeDeclare(exchange: "square.terminal.checkout", ExchangeType.Fanout);
 
         app.Run();
     }

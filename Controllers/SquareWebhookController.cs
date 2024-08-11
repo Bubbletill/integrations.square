@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using RabbitMQ.Client;
 using Square.Models;
 using Square.Utilities;
 using System.Text;
@@ -32,7 +33,11 @@ public class SquareWebhookController : ControllerBase
         if (!isFromSquare)
             return StatusCode(403);
 
-
+        var body = Encoding.UTF8.GetBytes(requestBody);
+        Program.RabbitCheckoutChannel.BasicPublish(exchange: "square.terminal.checkout",
+            routingKey: string.Empty,
+            basicProperties: null,
+            body: body);
 
         return StatusCode(200);
     } 
